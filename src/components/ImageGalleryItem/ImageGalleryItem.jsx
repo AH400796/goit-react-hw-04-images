@@ -9,7 +9,7 @@ export default function ImageGalleryItem({
 }) {
   return (
     <ListItem onClick={() => handleOnClickImage(largeImageURL)}>
-      <Image src={webformatURL} alt="" />
+      <Image src={webformatURL} alt="" width="350" height="270" />
     </ListItem>
   );
 }

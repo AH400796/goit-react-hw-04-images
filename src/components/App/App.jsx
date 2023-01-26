@@ -1,6 +1,6 @@
-import React, { Component } from 'react';
+import { useState, useEffect } from 'react';
 import { Toaster } from 'react-hot-toast';
-import smoothImagesScroll from '../../services/utility-function';
+import smoothImagesScroll from '../../services/utility';
 import { toastNotifyInfo, toastNotifyError } from '../../services/toast-notify';
 
 import { fetchImges } from '../../services/axios-api';
@@ -11,108 +11,89 @@ import Button from 'components/Button';
 
 import { Wrapper, Image } from './App.styled';
 
-export default class App extends Component {
-  state = {
-    searchQuery: '',
-    images: [],
-    modalUrl: null,
-    showModal: false,
-    isLoading: false,
-    page: 1,
-    lastPage: 1,
-  };
+export default function App() {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [images, setImages] = useState([]);
+  const [modalUrl, setModalUrl] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
 
-  handleSearchSubmit = searchQuery => {
-    this.setState({
-      page: 1,
-      lastPage: 1,
-      images: [],
-      searchQuery: searchQuery,
-    });
-  };
-
-  handleClickOnLoadMoreButton = event => {
-    event.preventDefault();
-    this.setState(prevState => ({
-      page: prevState.page + 1,
-    }));
-  };
-
-  componentDidUpdate(_, prevState) {
-    smoothImagesScroll();
-    const { page, searchQuery, lastPage } = this.state;
+  useEffect(() => {
     if (lastPage === 0) {
       toastNotifyInfo('No data found on your request');
     }
-    if (page !== prevState.page || searchQuery !== prevState.searchQuery) {
-      this.toggleIsLoading();
-      fetchImges(page, searchQuery)
-        .then(response => {
-          if (page !== prevState.page) {
-            this.setState(prevState => ({
-              images: [...prevState.images, ...response.data.hits],
-              lastPage: Math.ceil(response.data.totalHits / 12),
-            }));
-          } else if (searchQuery !== prevState.searchQuery) {
-            this.setState({
-              images: response.data.hits,
-              lastPage: Math.ceil(response.data.totalHits / 12),
-            });
-          }
-        })
-        .catch(function (error) {
-          if (error.response) {
-            toastNotifyError(error.response.data);
-          } else if (error.request) {
-            toastNotifyError('XMLHttpRequest failed');
-          } else {
-            toastNotifyError('Error', error.message);
-          }
-          console.log(error.config);
-        })
-        .finally(this.toggleIsLoading(), setTimeout(smoothImagesScroll, 1250));
+  }, [lastPage]);
+
+  useEffect(() => {
+    smoothImagesScroll();
+  }, [images]);
+
+  useEffect(() => {
+    if (searchQuery === '') {
+      return;
     }
-  }
+    toggleIsLoading();
+    fetchImges(page, searchQuery)
+      .then(response => {
+        setImages(prevState => [...prevState, ...response.data.hits]);
+        setLastPage(Math.ceil(response.data.totalHits / 12));
+      })
+      .catch(function (error) {
+        if (error.response) {
+          toastNotifyError(error.response.data);
+        } else if (error.request) {
+          toastNotifyError('XMLHttpRequest failed');
+        } else {
+          toastNotifyError('Error', error.message);
+        }
+      })
+      .finally(toggleIsLoading());
+  }, [page, searchQuery]);
 
-  toggleIsLoading = () => {
-    this.setState(prevState => ({ isLoading: !prevState.isLoading }));
+  const handleSearchSubmit = searchQuery => {
+    setPage(1);
+    setLastPage(1);
+    setImages([]);
+    setSearchQuery(searchQuery);
   };
 
-  toggleModal = () => {
-    this.setState(({ showModal }) => ({
-      showModal: !showModal,
-    }));
+  const handleClickOnLoadMoreButton = event => {
+    event.preventDefault();
+    setPage(prevState => prevState + 1);
   };
 
-  openModal = url => {
-    this.setState({ modalUrl: url });
-    this.toggleModal();
+  const toggleIsLoading = () => {
+    setIsLoading(prevState => !prevState);
   };
 
-  render() {
-    const { images, showModal, modalUrl, isLoading, page, lastPage } =
-      this.state;
-    return (
-      <Wrapper>
-        <Toaster />
-        {showModal && (
-          <Modal onClose={this.toggleModal}>
-            <Image src={modalUrl} alt="" />
-          </Modal>
-        )}
-        <Searchbar onSubmitForm={this.handleSearchSubmit} />
-        <ImageGallery
-          images={images}
-          handleOnClickImage={this.openModal}
-          isLoading={isLoading}
-        />
-        {images.length !== 0 && page !== lastPage && (
-          <Button
-            onClick={this.handleClickOnLoadMoreButton}
-            isLoading={isLoading}
-          />
-        )}
-      </Wrapper>
-    );
-  }
+  const toggleModal = () => {
+    setShowModal(prevState => !prevState);
+  };
+
+  const openModal = url => {
+    setModalUrl(url);
+    toggleModal();
+  };
+
+  return (
+    <Wrapper>
+      <Toaster />
+      {showModal && (
+        <Modal onClose={toggleModal}>
+          <Image src={modalUrl} alt="" />
+        </Modal>
+      )}
+      <Searchbar onSubmitForm={handleSearchSubmit} />
+      <ImageGallery
+        images={images}
+        handleOnClickImage={openModal}
+        isLoading={isLoading}
+      />
+      {images.length !== 0 && page !== lastPage && (
+        <Button onClick={handleClickOnLoadMoreButton} isLoading={isLoading} />
+      )}
+    </Wrapper>
+  );
 }

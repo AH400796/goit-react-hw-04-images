@@ -1,4 +1,3 @@
-import React from 'react';
 import Loader from 'components/Loader';
 import PropTypes from 'prop-types';
 import { LoadButton, ButtonWrapper } from './Button.styled';
