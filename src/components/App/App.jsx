@@ -49,7 +49,7 @@ export default function App() {
           toastNotifyError('Error', error.message);
         }
       })
-      .finally(toggleIsLoading());
+      .finally(toggleIsLoading);
   }, [page, searchQuery]);
 
   const handleSearchSubmit = searchQuery => {
